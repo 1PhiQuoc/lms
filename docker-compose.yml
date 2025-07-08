@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  auth_service:
+    build: ./auth_service
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./auth_service/.env
+    depends_on:
+      - auth_db
+
+  course_service:
+    build: ./course_service
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./course_service/.env
+    depends_on:
+      - course_db
+
+  auth_db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_db
+    ports:
+      - "5433:5432" # auth_db sẽ dùng port 5433 trên máy host
+
+  course_db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: course_db
+    ports:
+      - "5434:5432"   # course_db sẽ dùng port 5434 trên máy host
+
+
+  nginx:
+    build: ./nginx_gateway
+    ports:
+      - "8000:80"
+    depends_on:
+      - auth_service
+      - course_service
