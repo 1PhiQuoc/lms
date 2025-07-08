@@ -21,7 +21,7 @@ def create_app():
     jwt.init_app(app)
     migrate.init_app(app, db)
 
-    from .routes import bp as auth_bp
-    app.register_blueprint(auth_bp)
+    from .routes import bp as course_bp
+    app.register_blueprint(course_bp)
 
     return app
