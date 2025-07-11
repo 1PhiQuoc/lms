@@ -7,4 +7,6 @@ class AuthService:
     @staticmethod
     def register(data):
         return UserProvider.create_user(data)
+    def register_service(data):
+        return UserProvider.create_user(data)
         
