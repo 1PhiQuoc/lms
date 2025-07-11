@@ -5,8 +5,8 @@ class AuthService:
     def login(data):
         return UserProvider.authenticate_user(data)
     @staticmethod
-    def register(data):
-        return UserProvider.create_user(data)
+    def register(username, password):
+        return UserProvider.create_user(username, password)
     def register_service(data):
         return UserProvider.create_user(data)
         

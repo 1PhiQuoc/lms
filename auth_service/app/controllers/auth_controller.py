@@ -11,12 +11,14 @@ def login():
 # @bp.route('/register', methods=['POST'])
 def register():
     data = request.json
-    print("Registering user with data:", data)
-
     try:
-        result = AuthService.register(data)
+        username = data.get("username")
+        password = data.get("password")
+        result = AuthService.register(username, password)
+        if not result:
+            return jsonify({"error": "Đăng ký thất bại"}), 400
         return jsonify({
-            "message": "User registered successfully",
+            "message": "Đăng ký thành công",
             "user": result
         }), 201
     except Exception as e:
