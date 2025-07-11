@@ -1,19 +1,14 @@
-from flask import request, jsonify
-from ..services.auth_service import register_service, login_service
+from flask import Blueprint, request, jsonify
+from app.service.auth_service import register_service, login_service
 
-def register():
-    data = request.get_json()
-    print("Received data for registration:", data)
-    if not data or 'username' not in data or 'password' not in data:
-        return jsonify({"msg": "Missing username or password"}), 400
-    if len(data['password']) < 6:
-        return jsonify({"msg": "Password must be at least 6 characters long"}), 400
-    result = register_service(data)
-    return jsonify(result), 201
+bp = Blueprint('auth', __name__)
 
+@bp.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    result = login_service(data)
-    if not result:
-        return jsonify({"msg": "Invalid credentials"}), 401
-    return jsonify(result)
+    data = request.json
+    return AuthService.login(data)
+
+@bp.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    return AuthService.register(data)
