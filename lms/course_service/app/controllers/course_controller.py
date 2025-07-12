@@ -3,308 +3,308 @@ import psycopg2
 import os
 from datetime import datetime
 
-# Cấu hình kết nối database
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'course_db'),
-    'port': os.getenv('DB_PORT', '5432'),
-    'database': os.getenv('DB_NAME', 'course_db'),
-    'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', 'postgres')
+    'host': 'course_db',
+    'port': '5432',
+    'database': 'course_db',
+    'user': 'postgres',
+    'password': 'postgres'
 }
 
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
 
 def format_course_data(row):
-    """Chuyển đổi dữ liệu từ database thành dictionary"""
     return {
         'id': row[0],
         'title': row[1],
         'description': row[2],
         'instructor_id': row[3],
-        'created_at': row[4].isoformat() if row[4] else None,
-        'updated_at': row[5].isoformat() if row[5] else None
+        'created_at': str(row[4]) if row[4] else None,
+        'updated_at': str(row[5]) if row[5] else None
     }
 
-def get_courses():
+def get_all_courses():
     try:
-        # Kết nối database
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Thực hiện truy vấn
-        cursor.execute("""
+        sql = """
             SELECT id, title, description, instructor_id, created_at, updated_at
             FROM courses
             ORDER BY created_at DESC
-        """)
+        """
+        cursor.execute(sql)
         
-        # Lấy kết quả và chuyển đổi thành list
+        result = cursor.fetchall()
+        
         courses = []
-        for row in cursor.fetchall():
-            courses.append(format_course_data(row))
+        for row in result:
+            course = format_course_data(row)
+            courses.append(course)
         
-        # Đóng kết nối
         cursor.close()
         conn.close()
         
         return jsonify({
             "success": True,
             "data": courses,
-            "message": "Lấy danh sách khóa học thành công"
+            "message": "Get courses successfully"
         }), 200
         
-    except Exception as e:
+    except Exception as error:
         return jsonify({
             "success": False,
-            "message": f"Lỗi: {str(e)}"
+            "message": f"Error: {str(error)}"
         }), 500
 
-def get_course(course_id):
-    """Lấy thông tin một khóa học theo ID"""
+def get_course_by_id(course_id):
     try:
-        # Kết nối database
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Thực hiện truy vấn
-        cursor.execute("""
+        sql = """
             SELECT id, title, description, instructor_id, created_at, updated_at
             FROM courses
             WHERE id = %s
-        """, (course_id,))
+        """
+        cursor.execute(sql, (course_id,))
         
-        row = cursor.fetchone()
+        result = cursor.fetchone()
+        
         cursor.close()
         conn.close()
         
-        # Kiểm tra kết quả
-        if row:
-            course = format_course_data(row)
+        if result:
+            course = format_course_data(result)
             return jsonify({
                 "success": True,
                 "data": course,
-                "message": "Lấy thông tin khóa học thành công"
+                "message": "Course found"
             }), 200
         else:
             return jsonify({
                 "success": False,
-                "message": "Không tìm thấy khóa học"
+                "message": "Course not found"
             }), 404
             
-    except Exception as e:
+    except Exception as error:
         return jsonify({
             "success": False,
-            "message": f"Lỗi: {str(e)}"
+            "message": f"Error: {str(error)}"
         }), 500
 
-def create_course():
-    """Tạo khóa học mới"""
+def create_new_course():
     try:
-        # Lấy dữ liệu từ request
         data = request.get_json()
+        
         if not data:
             return jsonify({
                 "success": False,
-                "message": "Không có dữ liệu được gửi"
+                "message": "No data provided"
             }), 400
         
-        # Kiểm tra các trường bắt buộc
-        required_fields = ['title', 'description', 'instructor_id']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({
-                    "success": False,
-                    "message": f"Thiếu trường bắt buộc: {field}"
-                }), 400
+        if 'title' not in data:
+            return jsonify({
+                "success": False,
+                "message": "Missing course title"
+            }), 400
+            
+        if 'description' not in data:
+            return jsonify({
+                "success": False,
+                "message": "Missing course description"
+            }), 400
+            
+        if 'instructor_id' not in data:
+            return jsonify({
+                "success": False,
+                "message": "Missing instructor ID"
+            }), 400
         
-        # Kết nối database
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Thêm khóa học mới
-        cursor.execute("""
+        sql = """
             INSERT INTO courses (title, description, instructor_id, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id, title, description, instructor_id, created_at, updated_at
-        """, (
+        """
+        
+        current_time = datetime.now()
+        cursor.execute(sql, (
             data['title'],
             data['description'],
             data['instructor_id'],
-            datetime.now(),
-            datetime.now()
+            current_time,
+            current_time
         ))
         
-        row = cursor.fetchone()
+        result = cursor.fetchone()
         conn.commit()
+        
         cursor.close()
         conn.close()
         
-        # Trả về kết quả
-        course = format_course_data(row)
+        new_course = format_course_data(result)
         return jsonify({
             "success": True,
-            "data": course,
-            "message": "Tạo khóa học thành công"
+            "data": new_course,
+            "message": "Course created successfully"
         }), 201
         
-    except Exception as e:
+    except Exception as error:
         return jsonify({
             "success": False,
-            "message": f"Lỗi: {str(e)}"
+            "message": f"Error: {str(error)}"
         }), 500
 
 def update_course(course_id):
-    """Cập nhật thông tin khóa học"""
     try:
-        # Lấy dữ liệu từ request
         data = request.get_json()
+        
         if not data:
             return jsonify({
                 "success": False,
-                "message": "Không có dữ liệu được gửi"
+                "message": "No data to update"
             }), 400
         
-        # Kết nối database
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Xây dựng câu lệnh UPDATE
-        update_parts = []
+        update_fields = []
         values = []
         
         if 'title' in data:
-            update_parts.append("title = %s")
+            update_fields.append("title = %s")
             values.append(data['title'])
         
         if 'description' in data:
-            update_parts.append("description = %s")
+            update_fields.append("description = %s")
             values.append(data['description'])
         
         if 'instructor_id' in data:
-            update_parts.append("instructor_id = %s")
+            update_fields.append("instructor_id = %s")
             values.append(data['instructor_id'])
         
-        # Nếu không có gì để cập nhật
-        if not update_parts:
+        if not update_fields:
             cursor.close()
             conn.close()
             return jsonify({
                 "success": False,
-                "message": "Không có dữ liệu nào để cập nhật"
+                "message": "No data to update"
             }), 400
         
-        # Thêm thời gian cập nhật
-        update_parts.append("updated_at = %s")
+        update_fields.append("updated_at = %s")
         values.append(datetime.now())
         values.append(course_id)
         
-        # Thực hiện cập nhật
-        query = f"""
+        sql = f"""
             UPDATE courses 
-            SET {', '.join(update_parts)}
+            SET {', '.join(update_fields)}
             WHERE id = %s
             RETURNING id, title, description, instructor_id, created_at, updated_at
         """
         
-        cursor.execute(query, values)
-        row = cursor.fetchone()
+        cursor.execute(sql, values)
+        result = cursor.fetchone()
         conn.commit()
+        
         cursor.close()
         conn.close()
         
-        # Kiểm tra kết quả
-        if row:
-            course = format_course_data(row)
+        if result:
+            updated_course = format_course_data(result)
             return jsonify({
                 "success": True,
-                "data": course,
-                "message": "Cập nhật khóa học thành công"
+                "data": updated_course,
+                "message": "Course updated successfully"
             }), 200
         else:
             return jsonify({
                 "success": False,
-                "message": "Không tìm thấy khóa học"
+                "message": "Course not found"
             }), 404
             
-    except Exception as e:
+    except Exception as error:
         return jsonify({
             "success": False,
-            "message": f"Lỗi: {str(e)}"
+            "message": f"Error: {str(error)}"
         }), 500
 
 def delete_course(course_id):
     try:
-        # Kết nối database
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Thực hiện xóa
-        cursor.execute("DELETE FROM courses WHERE id = %s", (course_id,))
+        sql = "DELETE FROM courses WHERE id = %s"
+        cursor.execute(sql, (course_id,))
+        
         deleted_count = cursor.rowcount
         
         conn.commit()
         cursor.close()
         conn.close()
         
-        # Kiểm tra kết quả
         if deleted_count > 0:
             return jsonify({
                 "success": True,
-                "message": "Xóa khóa học thành công"
+                "message": "Course deleted successfully"
             }), 200
         else:
             return jsonify({
                 "success": False,
-                "message": "Không tìm thấy khóa học"
+                "message": "Course not found"
             }), 404
             
-    except Exception as e:
+    except Exception as error:
         return jsonify({
             "success": False,
-            "message": f"Lỗi: {str(e)}"
+            "message": f"Error: {str(error)}"
         }), 500
 
 def search_courses():
-    """Tìm kiếm khóa học theo tên hoặc mô tả"""
     try:
-        # Lấy từ khóa tìm kiếm
         query = request.args.get('q', '')
+        
         if not query:
             return jsonify({
                 "success": False,
-                "message": "Cần nhập từ khóa tìm kiếm"
+                "message": "Search query required"
             }), 400
         
-        # Kết nối database
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Thực hiện tìm kiếm
         search_term = f"%{query}%"
-        cursor.execute("""
+        sql = """
             SELECT id, title, description, instructor_id, created_at, updated_at
             FROM courses
             WHERE title ILIKE %s OR description ILIKE %s
             ORDER BY created_at DESC
-        """, (search_term, search_term))
+        """
+        cursor.execute(sql, (search_term, search_term))
         
-        # Lấy kết quả
-        courses = []
-        for row in cursor.fetchall():
-            courses.append(format_course_data(row))
+        result = cursor.fetchall()
+        
+        search_results = []
+        for row in result:
+            course = format_course_data(row)
+            search_results.append(course)
         
         cursor.close()
         conn.close()
         
         return jsonify({
             "success": True,
-            "data": courses,
-            "message": "Tìm kiếm hoàn tất"
+            "data": search_results,
+            "message": f"Found {len(search_results)} courses"
         }), 200
         
-    except Exception as e:
+    except Exception as error:
         return jsonify({
             "success": False,
-            "message": f"Lỗi: {str(e)}"
+            "message": f"Error: {str(error)}"
         }), 500
+
+
