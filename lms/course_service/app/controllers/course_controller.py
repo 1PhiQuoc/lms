@@ -308,3 +308,9 @@ def search_courses():
         }), 500
 
 
+get_courses = get_all_courses
+get_course = get_course_by_id
+create_course = create_new_course
+update_course = update_course
+delete_course = delete_course
+search_courses = search_courses
