@@ -1,0 +1,18 @@
+# Dùng Node image
+FROM node:20
+
+# Làm việc trong /app
+WORKDIR /app
+
+# Cài đặt package.json
+COPY package*.json ./
+RUN npm install
+
+# Copy toàn bộ source code
+COPY . .
+
+# Expose port mặc định của Angular
+EXPOSE 4201
+
+# Lệnh chạy dev server
+CMD ["npx", "ng", "serve", "--host", "0.0.0.0", "--port", "4200"]

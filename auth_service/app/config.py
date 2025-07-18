@@ -6,3 +6,4 @@ class Config:
     TESTING = False
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "default_secret_key")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")

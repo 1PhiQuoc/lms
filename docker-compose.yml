@@ -4,26 +4,26 @@ services:
   auth_service:
     build: ./auth_service
     container_name: auth_service
-    ports:
-      - "5000:5000"
     env_file:
       - ./auth_service/.env
     depends_on:
       - auth_db
     volumes:
       - ./auth_service:/app
+    networks:
+      - lms_net
 
   course_service:
     build: ./course_service
     container_name: course_service
-    ports:
-      - "5001:5001"
     env_file:
       - ./course_service/.env
     depends_on:
       - course_db
     volumes:
       - ./course_service:/app
+    networks:
+      - lms_net
 
   auth_db:
     image: postgres:14
@@ -36,6 +36,8 @@ services:
       - "5433:5432"
     volumes:
       - auth_db_volume:/var/lib/postgresql/data
+    networks:
+      - lms_net
 
   course_db:
     image: postgres:14
@@ -48,6 +50,22 @@ services:
       - "5434:5432"
     volumes:
       - course_db_volume:/var/lib/postgresql/data
+    networks:
+      - lms_net
+
+  fe:
+    build: 
+      context: ./fe
+      dockerfile: Dockerfile.dev
+    container_name: fe
+    depends_on:
+      - auth_service
+      - course_service
+    networks:
+      - lms_net
+    ports:
+      - "4201:4201"
+
 
   nginx:
     build: ./nginx_gateway
@@ -55,11 +73,15 @@ services:
     ports:
       - "8000:80"
     depends_on:
-      - auth_service
-      - course_service
+      - fe
     volumes:
       - ./nginx_gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - lms_net
 
 volumes:
   auth_db_volume:
   course_db_volume:
+
+networks:
+  lms_net:
